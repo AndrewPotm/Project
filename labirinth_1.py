@@ -1,7 +1,8 @@
 import pygame
 
-WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 890, 660
-FPS = 10
+WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 900, 670
+WINDOW_SIZE1 = WINDOW_WIDTH1, WINDOW_HEIGHT1 = 100, 100
+FPS = 5
 TILE_SIZE = 32
 ENEMY_EVENT = 30
 
@@ -19,7 +20,7 @@ class Labyrinth:
         self.finish_tile = finish_tile
 
     def render(self, screen):
-        colors = {0: (0, 0, 0), 1: (120, 120, 120), 2: (50, 50, 50)}
+        colors = {0: (0, 0, 0), 1: (120, 120, 120), 2: (255, 0, 0)}
         for x in range(self.height):
             for y in range(self.width):
                 rect = pygame.Rect(y * self.tile_size, x * self.tile_size,
@@ -33,9 +34,9 @@ class Labyrinth:
         return self.get_tile_id(position) in self.free_tiles
 
     def find_path(self, start, target):
-        INF = 1000
+        D = 100
         x, y = start
-        distance = [[INF] * self.width for _ in range(self.height)]
+        distance = [[D] * self.width for _ in range(self.height)]
         distance[y][x] = 0
         prev = [[None] * self.width for _ in range(self.height)]
         queue = [(x, y)]
@@ -44,8 +45,16 @@ class Labyrinth:
             for dx, dy in (1, 0), (0, 1), (-1, 0), (0, -1):
                 next_x, next_y = x + dx, y + dy
                 if 0 <= next_x < self.width and 0 < next_y < self.height and \
-                        self.is_free((next_x, next_y)) and distance[next_x][next_y] == INF:
-                    distance
+                        self.is_free((next_x, next_y)) and distance[next_y][next_x] == D:
+                    distance[next_y][next_x] = distance[y][x] + 1
+                    prev[next_y][next_x] = (x, y)
+                    queue.append((next_x, next_y))
+        x, y = target
+        if distance[y][x] == D or start == target:
+            return start
+        while prev[y][x] != start:
+            x, y = prev[y][x]
+        return x, y
 
 
 class Hero:
@@ -66,7 +75,7 @@ class Hero:
 class Enemy:
     def __init__(self, position):
         self.x, self.y = position
-        self.delay = 100
+        self.delay = 200
         pygame.time.set_timer(ENEMY_EVENT, self.delay)
 
     def get_position(self):
@@ -104,6 +113,29 @@ class Game:
         if self.labyrinth.is_free((next_x, next_y)):
             self.hero.set_position((next_x, next_y))
 
+    def move_enemy(self):
+        next_position = self.labyrinth.find_path(self.enemy.get_position(),
+                                                 self.hero.get_position())
+        self.enemy.set_position(next_position)
+
+    def check_win(self):
+        return self.labyrinth.get_tile_id(self.hero.get_position()) == self.labyrinth.finish_tile
+
+    def check_lose(self):
+        return self.hero.get_position() == self.enemy.get_position()
+
+
+def show_message(screen, message):
+    font = pygame.font.Font(None, 50)
+    text = font.render(message, 1, (50, 70, 0))
+    text_x = WINDOW_WIDTH // 2 - text.get_width() // 2
+    text_y = WINDOW_HEIGHT // 2 - text.get_height() // 2
+    text_w = text.get_width()
+    text_h = text.get_height()
+    pygame.draw.rect(screen, (200, 150, 50), (text_x - 10, text_y - 10,
+                                              text_w + 20, text_h + 20))
+    screen.blit(text, (text_x, text_y))
+
 
 def main():
     pygame.init()
@@ -116,13 +148,23 @@ def main():
 
     clock = pygame.time.Clock()
     running = True
+    game_over = False
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        game.update_hero()
+            if event.type == ENEMY_EVENT and not game_over:
+                game.move_enemy()
+        if not game_over:
+            game.update_hero()
         screen.fill((0, 0, 0))
         game.render(screen)
+        if game.check_win():
+            game_over = True
+            show_message(screen, 'Ты победил!')
+        if game.check_lose():
+            game_over = True
+            show_message(screen, 'Поражение...')
         pygame.display.flip()
         clock.tick(FPS)
     pygame.quit()
