@@ -60,8 +60,27 @@ class Particle(pygame.sprite.Sprite):  # создание частиц
             self.kill()
 
 
-def terminate():
-    pygame.quit()
+class Particle_over(pygame.sprite.Sprite):  # создание частиц
+    fire = [load_image("stop.png", -1)]
+    for scale in (2, 5, 10):
+        fire.append(pygame.transform.scale(fire[0], (scale, scale)))
+
+    def __init__(self, pos, dx, dy):
+        super().__init__(all_sprites)
+        self.image = random.choice(self.fire)
+        self.rect = self.image.get_rect()
+
+        self.velocity = [dx, dy]
+        self.rect.x, self.rect.y = pos
+
+        self.gravity = gravity
+
+    def update(self):
+        self.velocity[1] += self.gravity
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        if not self.rect.colliderect(screen_rect):
+            self.kill()
 
 
 class Headpiece:  # заставка
@@ -234,12 +253,21 @@ class Game:
         return self.hero.get_position() == self.enemy.get_position()
 
 
-def create_particles(position):
+def create_particles_win(position):
     particle_count = 25
     numbers = range(-5, 6)
     for _ in range(particle_count):
         Particle(position, random.choice(numbers), random.choice(numbers))
 
+def terminate():
+    pygame.quit()
+
+
+def create_particles_over(position):
+    particle_count = 10
+    numbers = range(-5, 6)
+    for _ in range(particle_count):
+        Particle_over(position, random.choice(numbers), random.choice(numbers))
 
 def show_message(screen, message):
     font = pygame.font.Font(None, 50)
@@ -251,7 +279,6 @@ def show_message(screen, message):
     pygame.draw.rect(screen, (200, 150, 50), (text_x - 10, text_y - 10,
                                               text_w + 20, text_h + 20))
     screen.blit(text, (text_x, text_y))
-
 
 def main():
     global count
@@ -278,16 +305,20 @@ def main():
         game.render(screen)
         if game.check_win():
             game_over = True
-            show_message(screen, 'Ты победил!')
+            show_message(screen, 'Нажмите любую кнопку')
             FPS = 50
         if game.check_lose():
             game_over = True
             show_message(screen, 'Поражение...')
             FPS = 50
-        if game_over and count < 15:
+        if game_over and count < 15 and game.check_win():
             count += 1
             x, y = hero.get_position()
-            create_particles((x * 32, y * 32))
+            create_particles_win((x * 32, y * 32))
+        elif game_over and count < 15 and game.check_lose():
+            count += 1
+            x, y = hero.get_position()
+            create_particles_over((x * 32, y * 32))
 
         all_sprites.draw(screen)
         all_sprites.update()
