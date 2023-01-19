@@ -37,7 +37,7 @@ def load_image(name, color_key=None):  # загрузка картинок
     return image
 
 
-class Particle(pygame.sprite.Sprite):  # создание частиц
+class Particle_win(pygame.sprite.Sprite):  # создание частиц при победе
     fire = [load_image("star.png", -1)]
     for scale in (2, 5, 10):
         fire.append(pygame.transform.scale(fire[0], (scale, scale)))
@@ -60,7 +60,7 @@ class Particle(pygame.sprite.Sprite):  # создание частиц
             self.kill()
 
 
-class Particle_over(pygame.sprite.Sprite):  # создание частиц
+class Particle_over(pygame.sprite.Sprite):  # создание частиц при поражении
     fire = [load_image("stop.png", -1)]
     for scale in (2, 5, 10):
         fire.append(pygame.transform.scale(fire[0], (scale, scale)))
@@ -83,7 +83,7 @@ class Particle_over(pygame.sprite.Sprite):  # создание частиц
             self.kill()
 
 
-class Headpiece:  # заставка
+class Headpiece:  # заставка перед игрой
     def __init__(self):
         pass
 
@@ -112,7 +112,7 @@ class Headpiece:  # заставка
                 clock.tick(FPS)
 
 
-class Labyrinth:  # лабиринт
+class Labyrinth:  # создание лабиринта
     def __init__(self, filename, free_tiles, finish_tile):
         self.map = []
         with open(f"{filename}") as input_file:
@@ -162,30 +162,7 @@ class Labyrinth:  # лабиринт
         return x, y
 
 
-class AnimatedSprite(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
-        self.frames = []
-        self.cut_sheet(sheet, columns, rows)
-        self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
-        self.rect = self.rect.move(x, y)
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
-    def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
-        self.image = self.frames[self.cur_frame]
-
-
-class Hero:  # игрок
+class Hero:  #  создание игрока
     def __init__(self, position):
         self.x, self.y = position
 
@@ -200,7 +177,7 @@ class Hero:  # игрок
         pygame.draw.circle(screen, (255, 255, 255), center, TILE_SIZE // 2)
 
 
-class Enemy:  # враг
+class Enemy:  # создание врага
     def __init__(self, position):
         self.x, self.y = position
         self.delay = 100
@@ -217,7 +194,7 @@ class Enemy:  # враг
         pygame.draw.circle(screen, (255, 0, 0), center, TILE_SIZE // 2)
 
 
-class Game:
+class Game: # объединение созданных частей игры
     def __init__(self, labyrinth, hero, enemy):
         self.labyrinth = labyrinth
         self.hero = hero
@@ -253,14 +230,15 @@ class Game:
         return self.hero.get_position() == self.enemy.get_position()
 
 
-def create_particles_win(position):
+def terminate():
+    pygame.quit()
+
+
+def create_particles_win(position): # создания частиц
     particle_count = 25
     numbers = range(-5, 6)
     for _ in range(particle_count):
-        Particle(position, random.choice(numbers), random.choice(numbers))
-
-def terminate():
-    pygame.quit()
+        Particle_win(position, random.choice(numbers), random.choice(numbers))
 
 
 def create_particles_over(position):
@@ -269,7 +247,8 @@ def create_particles_over(position):
     for _ in range(particle_count):
         Particle_over(position, random.choice(numbers), random.choice(numbers))
 
-def show_message(screen, message):
+
+def show_message(screen, message): # показ сообщения после окончания игры
     font = pygame.font.Font(None, 50)
     text = font.render(message, 1, (50, 70, 0))
     text_x = WINDOW_WIDTH // 2 - text.get_width() // 2
@@ -280,10 +259,12 @@ def show_message(screen, message):
                                               text_w + 20, text_h + 20))
     screen.blit(text, (text_x, text_y))
 
+
 def main():
     global count
     global FPS
     pygame.init()
+    pygame.display.set_caption('Лабиринт')
     Headpiece.start_screen(1, screen)
 
     labyrinth = Labyrinth('Map.txt', [0, 2], 2)
@@ -305,7 +286,7 @@ def main():
         game.render(screen)
         if game.check_win():
             game_over = True
-            show_message(screen, 'Нажмите любую кнопку')
+            show_message(screen, 'Вы выиграли!')
             FPS = 50
         if game.check_lose():
             game_over = True
