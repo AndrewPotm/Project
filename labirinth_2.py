@@ -290,7 +290,7 @@ def main():
             FPS = 50
         if game.check_lose():
             game_over = True
-            show_message(screen, 'Поражение...')
+            show_message(screen, 'Поражение..')
             FPS = 50
         if game_over and count < 15 and game.check_win():
             count += 1
